@@ -1,0 +1,43 @@
+AMCAS Task 3: VDD Sweep
+
+.include NMOS_VTG.inc
+.include PMOS_VTG.inc
+.param VDD=1.1 VBL=1.1
+
+Vdd vdd 0 'VDD'
+Vwl wl 0 PWL(0 0 1n 0 1.05n 'VDD')
+
+MP1 qb q vdd vdd PMOS_VTG W=0.15u L=0.045u
+MN1 qb q 0   0   NMOS_VTG W=0.20u L=0.045u
+MP2 q  qb vdd vdd PMOS_VTG W=0.15u L=0.045u
+MN2 q  qb 0   0   NMOS_VTG W=0.20u L=0.045u
+
+MA1 bl  wl q  0   NMOS_VTG W=0.16u L=0.045u
+MA2 blb wl qb 0   NMOS_VTG W=0.16u L=0.045u
+
+Cbl  bl  0 180f IC='VBL'
+Cblb blb 0 180f IC='VBL'
+
+.ic v(q)=0 v(qb)='VDD'
+
+.control
+  let vdd_val = 1.1
+  let step = 0.05
+  
+  echo "VDD,DeltaV" > task3_sweep.csv
+  
+  while vdd_val >= 0.20
+    alter Vdd = vdd_val
+    alter Vwl = [ 0 0 1n 0 1.05n vdd_val ]
+    alter @Cbl[IC] = vdd_val
+    alter @Cblb[IC] = vdd_val
+    
+    tran 5p 4n uic
+    let delta_v = v(blb) - v(bl)
+    meas tran dv FIND delta_v AT=2.0n
+    
+    echo "$&vdd_val,$&dv" >> task3_sweep.csv
+    let vdd_val = vdd_val - step
+  end
+.endc
+.end
